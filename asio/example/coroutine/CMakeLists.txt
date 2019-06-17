@@ -1,0 +1,5 @@
+project(coroutine)
+file(GLOB_RECURSE coroutine_SRCS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp)
+add_executable(coroutine ${coroutine_SRCS})
+target_include_directories(coroutine PRIVATE ${Boost_INCLUDE_DIRS})
+target_link_libraries(coroutine ${Boost_LIBRARIES})

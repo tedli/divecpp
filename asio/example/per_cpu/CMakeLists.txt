@@ -1,0 +1,5 @@
+project(per_cpu)
+file(GLOB_RECURSE per_cpu_SRCS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp)
+add_executable(per_cpu ${per_cpu_SRCS})
+target_include_directories(per_cpu PRIVATE ${Boost_INCLUDE_DIRS})
+target_link_libraries(per_cpu ${Boost_LIBRARIES})
