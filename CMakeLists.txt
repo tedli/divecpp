@@ -11,3 +11,4 @@ find_package(Boost 1.70 REQUIRED COMPONENTS context fiber coroutine thread)
 find_package(Catch2 2.8.0 REQUIRED)
 
 add_subdirectory(context)
+add_subdirectory(asio)
