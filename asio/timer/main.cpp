@@ -5,6 +5,7 @@
 #include <iostream>
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
+#include <boost/thread/thread.hpp>
 
 TEST_CASE("Using a timer synchronously", "[asio]") {
     boost::asio::io_context io;
@@ -44,7 +45,7 @@ TEST_CASE("Binding arguments to a handler", "[asio]") {
 
 class printer {
 public:
-    printer(boost::asio::io_context &io) : timer_(io, boost::asio::chrono::seconds(1)), count_(0) {
+    explicit printer(boost::asio::io_context &io) : timer_(io, boost::asio::chrono::seconds(1)), count_(0) {
         timer_.async_wait(boost::bind(&printer::print, this));
     }
 
@@ -70,4 +71,60 @@ TEST_CASE("Using a member function as a handler", "[asio]") {
     boost::asio::io_context io;
     printer p(io);
     io.run();
+}
+
+class printer_mt {
+public:
+    explicit printer_mt(boost::asio::io_context &io)
+            : strand_(boost::asio::make_strand(io)),
+              timer1_(io, boost::asio::chrono::seconds(1)),
+              timer2_(io, boost::asio::chrono::seconds(1)),
+              count_(0) {
+        timer1_.async_wait(boost::asio::bind_executor(
+                strand_,
+                boost::bind(&printer_mt::print1, this)));
+        timer2_.async_wait(boost::asio::bind_executor(
+                strand_,
+                boost::bind(&printer_mt::print2, this)));
+    }
+
+    ~printer_mt() {
+        std::cout << "Final count is " << count_ << std::endl;
+    }
+
+    void print1() {
+        if (count_ < 10) {
+            std::cout << "Timer 1: " << count_ << std::endl;
+            ++count_;
+            timer1_.expires_at(timer1_.expiry() + boost::asio::chrono::seconds(1));
+            timer1_.async_wait(boost::asio::bind_executor(
+                    strand_,
+                    boost::bind(&printer_mt::print1, this)));
+        }
+    }
+
+    void print2() {
+        if (count_ < 10) {
+            std::cout << "Timer 2: " << count_ << std::endl;
+            ++count_;
+            timer2_.expires_at(timer2_.expiry() + boost::asio::chrono::seconds(1));
+            timer2_.async_wait(boost::asio::bind_executor(
+                    strand_,
+                    boost::bind(&printer_mt::print2, this)));
+        }
+    }
+
+private:
+    boost::asio::strand<boost::asio::io_context::executor_type> strand_;
+    boost::asio::steady_timer timer1_;
+    boost::asio::steady_timer timer2_;
+    int count_;
+};
+
+TEST_CASE("Synchronising handlers in multithreaded programs", "[asio]") {
+    boost::asio::io_context io;
+    printer_mt p(io);
+    boost::thread t(boost::bind(&boost::asio::io_context::run, &io));
+//    io.run();
+    t.join();
 }
